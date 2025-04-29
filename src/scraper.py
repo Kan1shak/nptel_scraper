@@ -1,5 +1,8 @@
-import os
 import json
+import os
+import re
+import requests 
+
 from seleniumbase import Driver
 
 class NPTELScraper:
@@ -86,7 +89,7 @@ class NPTELScraper:
                 link_content = (link_name, link_href)
                 if "practice" in link_name:
                     week_content_schema["practice_quiz"].append(link_content)
-                elif "materials" in link_name:
+                elif "material" in link_name:
                     week_content_schema["material"].append(link_content)
                 elif "lecture" in link_name:
                     week_content_schema["lecture"].append(link_content)
@@ -98,6 +101,55 @@ class NPTELScraper:
         with open(f"{self.scrape_results_dir}/{self.course_title}/course_links.json", "w", encoding="utf-8") as f:
             json.dump(content, f, indent=4)
             print("Course lecture links saved to file.")
+
+    def parse_lecture_links(self):
+        print("Parsing lecture links...")
+        with open(f"{self.scrape_results_dir}/{self.course_title}/course_links.json", "r", encoding="utf-8") as f:
+            content = json.load(f)
+
+        os.makedirs(f"{self.scrape_results_dir}/{self.course_title}/lecture_transcripts", exist_ok=True)
+
+        self.sb.open(self.course_url)
+        cookie_g_a = self.sb.get_cookie("g_a")
+        cookie_g_a = cookie_g_a["value"] if cookie_g_a else None
+        cookie_g_b = self.sb.get_cookie("g_b")
+        cookie_g_b = cookie_g_b["value"] if cookie_g_b else None
+        
+        parsed_lecture_links = {}
+
+        for week, week_content in content.items():
+            for content_type, links in week_content.items():
+                if content_type == "lecture":
+                    for link in links:
+                        link_name,link_href = tuple(link)
+                        response = requests.get(link_href, cookies={"g_a": cookie_g_a, "g_b": cookie_g_b})
+                        if response.status_code == 200:
+                            response_text = response.text
+                            pattern = r"loadIFramePlayer\(\s*['\"]([A-Za-z0-9_-]{11})(?=['\"]\s*,)"
+                            vid_id = re.search(pattern, response_text)
+                            yt_link = f"https://www.youtube.com/watch?v={vid_id.group(1)}"
+                            parsed_lecture_links[link_name] = yt_link
+                            print(f"Parsed link: {link_name} -> {yt_link}")
+
+                            transcript_link = re.search(r'<option value="">Select Language </option>\s*<\s*option[^>]*value="([^"]+)(?=")', response_text)
+                            transcript_link = transcript_link.group(1)
+                            transcript_link = f"https://onlinecourses.nptel.ac.in/course/subtitle?url={transcript_link}"
+                            res = requests.get(transcript_link)
+                            if res.status_code == 200:
+                                transcript_vtt = res.text
+                                transcript_vtt = transcript_vtt.replace("WEBVTT", "")
+                                with open(f"{self.scrape_results_dir}/{self.course_title}/lecture_transcripts/{link_name}.vtt", "w", encoding="utf-8") as f:
+                                    f.write(transcript_vtt)
+                                    print(f"Transcript for {link_name} saved to file.")
+
+
+                        else:
+                            print(f"Failed to parse link: {link_name}")
+
+        with open(f"{self.scrape_results_dir}/{self.course_title}/parsed_lecture_links.json", "w", encoding="utf-8") as f:
+            json.dump(parsed_lecture_links, f, indent=4)
+            print("Parsed lecture links saved to file.")
+        print("Lecture links parsed successfully.")
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.sb.quit()

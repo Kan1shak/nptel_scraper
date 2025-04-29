@@ -5,5 +5,6 @@ def main():
     scraper = NPTELScraper(course_url)
     scraper.get_course_about()
     scraper.get_course_lecture_links()
+    scraper.parse_lecture_links()
 
 main()
