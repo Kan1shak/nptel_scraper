@@ -1,0 +1,7 @@
+.pytest_cache
+__pycache__
+downloaded_files
+*.pyc
+latest_logs
+nptel_user
+scrape_results
