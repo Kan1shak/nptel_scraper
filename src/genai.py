@@ -179,3 +179,37 @@ Course Content:
         with open(f"{self.scrape_results_dir}/{self.course_title}/{self.course_title}_info_dump.txt", "w", encoding="utf-8") as f:
             f.write(input_text)
             print(f"Processed content and saved to {self.scrape_results_dir}/{self.course_title}/{self.course_title}_info_dump.txt")
+        
+        os.makedirs(f"results/info_dumps", exist_ok=True)
+        with open(f"results/info_dumps/{self.course_title}.txt", "w", encoding="utf-8") as f:
+            f.write(input_text)
+
+    def generate_study_material(self):
+        if not os.path.exists(f"{self.scrape_results_dir}/{self.course_title}/{self.course_title}_info_dump.txt"):
+            raise ValueError("No info dump found. Please generate the info dump before generating study material.")
+        
+        with open("prompt.md", "r", encoding="utf-8") as f:
+            prompt = f.read()
+        
+        with open(f"{self.scrape_results_dir}/{self.course_title}/{self.course_title}_info_dump.txt", "r", encoding="utf-8") as f:
+            info_dump = f.read()
+
+        response = self.client.models.generate_content(
+            model="gemini-2.5-pro-exp-03-25",
+            config=types.GenerateContentConfig(
+                safety_settings=gemini_safety_settings,
+                system_instruction=prompt),
+            contents=types.Content(
+                parts=[
+                    types.Part(text=info_dump),
+                ]
+            )
+        )
+        with open(f"{self.scrape_results_dir}/{self.course_title}/{self.course_title}_study_material.md", "w", encoding="utf-8") as f:
+            f.write(response.text)
+            print(f"Processed content and saved to {self.scrape_results_dir}/{self.course_title}/{self.course_title}_study_material.md")
+        print("Study material generated successfully.")
+
+        os.makedirs(f"results/study_materials", exist_ok=True)
+        with open(f"results/study_materials/{self.course_title}.md", "w", encoding="utf-8") as f:
+            f.write(response.text)

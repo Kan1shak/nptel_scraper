@@ -6,3 +6,5 @@ latest_logs
 nptel_user
 scrape_results
 *.md
+!prompt.md
+!results/study_materials/*.md
