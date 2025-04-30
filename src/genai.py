@@ -47,7 +47,6 @@ class ContentProcessor:
             self.course_links = json.load(f)
     
     # free tier on gemini just doesnt wanna work with long videos rn so we go transcript mode
-    
     def _process_one_lecture_yt(self,lecture_name):
         yt_link = self.course_links[lecture_name]
         response = self.client.models.generate_content(
@@ -139,3 +138,44 @@ class ContentProcessor:
                 continue
             self.process_one_lecture(lecture_name, mode)
         print(f"\n\n\n\n####################\nProcessed all lectures and saved to {self.scrape_results_dir}/{self.course_title}/processed_lectures/") 
+
+    def generate_final_info_dump(self,auto_process_failed=False):
+        os.makedirs(f"{self.scrape_results_dir}/{self.course_title}/processed_lectures", exist_ok=True)
+        pre_existing_files = os.listdir(f"{self.scrape_results_dir}/{self.course_title}/processed_lectures")
+        all_lectures = self.course_links.keys()
+        if len(pre_existing_files) == 0:
+            raise ValueError("No processed lectures found. Please process all lectures before generating final info dump.")
+            
+        for lecture_name in all_lectures:
+            if f"{lecture_name}.md" not in pre_existing_files:
+                if auto_process_failed:
+                    print(f"{lecture_name} not processed. Attempting to process again...")
+                    self.process_one_lecture(lecture_name)
+                else:
+                    raise ValueError(f"{lecture_name} not processed. Please process all lectures before generating final info dump.")
+            
+        input_text = f"""Course Title: {self.course_title}
+Course About:
+'''
+{self.course_about}
+'''
+Course Content:
+######################"""
+
+        for week in self.course_content:
+            week_name = week.replace("_", " ")
+            week_name:str = week_name[0].upper() + week_name[1:]
+            input_text += f"\n######################\n\n{week_name}\n"
+            for lecture_obj in self.course_content[week]["lecture"]:
+                lecture_name = lecture_obj[0]
+                with open(f"{self.scrape_results_dir}/{self.course_title}/processed_lectures/{lecture_name}.md", "r", encoding="utf-8") as f:
+                    process_lecture_content = f.read()
+                lecture_name = lecture_name.replace("_", " ")
+                lecture_name:str = lecture_name[0].upper() + lecture_name[1:]
+                input_text += f"\n\nLecture Name: {lecture_name}\n"
+                input_text += f"\n'''\n{process_lecture_content}\n'''\n"
+        input_text += "\n\n\n\n####################\nEnd of Course"
+
+        with open(f"{self.scrape_results_dir}/{self.course_title}/{self.course_title}_info_dump.txt", "w", encoding="utf-8") as f:
+            f.write(input_text)
+            print(f"Processed content and saved to {self.scrape_results_dir}/{self.course_title}/{self.course_title}_info_dump.txt")
