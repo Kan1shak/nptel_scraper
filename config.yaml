@@ -1,0 +1,60 @@
+# NPTEL Scraper Configuration
+
+# Course settings
+course:
+  url: "https://onlinecourses.nptel.ac.in/noc25_mg45/course"
+  title: "marketing_analytics"
+
+# Execution control
+execution:
+  run_scraper: false  # Set to true to scrape the course
+  run_processor: true  # Set to true to process lectures
+  auto_process_failed: true  # Auto-process failed lectures
+
+# Scraper settings
+scraper:
+  user_data_dir: "nptel_user"
+  scrape_results_dir: "scrape_results"
+  swayam_url: "https://swayam.gov.in/wso?redirect=/"
+
+  # Timeouts and delays (in seconds)
+  click_timeout: 3
+  page_load_delay: 5
+
+  # Login settings
+  auto_login: true  # Automatically attempt Google login
+  interactive_login: false  # If true, will prompt for manual login
+
+  # Request settings
+  request_timeout: 10
+  max_retries: 3
+  retry_backoff_factor: 2  # Exponential backoff: 2s, 4s, 8s
+
+# Content processor settings
+processor:
+  # Gemini API settings
+  gemini:
+    # Model versions
+    flash_model: "gemini-2.0-flash-exp"
+    pro_model: "gemini-2.0-flash-exp"
+
+    # Safety settings (BLOCK_NONE, BLOCK_LOW_AND_ABOVE, BLOCK_MEDIUM_AND_ABOVE, BLOCK_ONLY_HIGH)
+    safety:
+      harassment: "BLOCK_NONE"
+      hate_speech: "BLOCK_NONE"
+      sexually_explicit: "BLOCK_NONE"
+      dangerous_content: "BLOCK_NONE"
+
+  # Processing mode: "transcript" or "yt" (YouTube video)
+  processing_mode: "transcript"
+
+  # Output directories
+  results_dir: "results"
+  info_dumps_dir: "results/info_dumps"
+  study_materials_dir: "results/study_materials"
+
+# Logging settings
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: null  # Set to a file path to log to file, null for console only
